@@ -90,18 +90,28 @@ export default function Dashboard() {
   });
 
   useEffect(() => {
-    api
-      .get("/dashboard")
-      .then((res) => {
-        const d = res.data;
-        setStats({
-          totalPegawai: d.totalPegawai ?? 0,
-          totalKendaraan: d.totalKendaraan ?? 0,
-          totalPerjalanan: d.totalPerjalanan ?? 0,
-          totalBBM: d.totalBBM ?? 0,
-        });
-      })
-      .catch(() => {});
+    let active = true;
+    const load = () => {
+      api
+        .get("/dashboard")
+        .then((res) => {
+          if (!active) return;
+          const d = res.data?.data ?? {};
+          setStats({
+            totalPegawai: d.totalPegawai ?? 0,
+            totalKendaraan: d.totalKendaraan ?? 0,
+            totalPerjalanan: d.totalPerjalanan ?? 0,
+            totalBBM: d.totalBBM ?? 0,
+          });
+        })
+        .catch(() => {});
+    };
+    load();
+    const interval = setInterval(load, 30000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
   }, []);
 
   useReveal();

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
-import { Download, Plus, LayoutDashboard, Search, Edit3, Trash2, ChevronLeft, ChevronRight, X, Image, AlertTriangle, Info, CheckCircle, FileText, MapPin, Fuel, DollarSign, Users as UsersIcon, Truck, Route, RotateCcw } from "lucide-react";
+import { Download, Plus, LayoutDashboard, Search, Edit3, Trash2, X, Image, AlertTriangle, Info, DollarSign, RotateCcw } from "lucide-react";
 import api from "../api";
 import DeleteModal from "../components/DeleteModal";
 import Badge from "../components/ui/Badge";
@@ -10,7 +10,6 @@ import StatCard from "../components/ui/StatCard";
 import LoadingSkeleton from "../components/ui/LoadingSkeleton";
 import EmptyState from "../components/ui/EmptyState";
 import { MONTHS, PER_PAGE } from "../utils/constants";
-import { formatRupiah, formatDate, formatNumber } from "../utils/format";
 
 export default function PerjalananIndex() {
   const [data, setData] = useState([]);
@@ -117,6 +116,8 @@ export default function PerjalananIndex() {
   // Stats from page data
   const totalPerjalanan = meta?.total || 0;
   const totalBiaya = data.reduce((s, d) => s + (d.bbm?.jumlah_biaya || 0), 0);
+  // "Perlu Verifikasi" & "Anomali" adalah status HASIL VALIDASI (status_validasi),
+  // bukan status efisiensi (status_efisiensi). Jangan disatukan.
   const perluVerifikasi = data.filter((d) => d.status_validasi === "Perlu Verifikasi").length;
   const anomaliCount = data.filter((d) => d.status_validasi === "Anomali").length;
 
@@ -136,7 +137,9 @@ export default function PerjalananIndex() {
       };
     }
     pegawaiMap[pid].trips += 1;
-    if (d.monitoring?.status_efisiensi === "Anomali") pegawaiMap[pid].anomalies += 1;
+    // Anomali pada rekap pegawai mengacu pada HASIL VALIDASI (status_validasi),
+    // bukan klasifikasi efisiensi (status_efisiensi).
+    if (d.status_validasi === "Anomali") pegawaiMap[pid].anomalies += 1;
     pegawaiMap[pid].totalJarak += d.odometer?.jarak_km || 0;
     pegawaiMap[pid].totalBiaya += d.bbm?.jumlah_biaya || 0;
     pegawaiMap[pid].totalEfisiensi += d.monitoring?.efisiensi || 0;
@@ -177,7 +180,8 @@ export default function PerjalananIndex() {
       </PageHeader>
 
       <div className="wrap -mt-8 relative z-20 pb-12">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+        {/* Statistik */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5">
           <StatCard icon={<LayoutDashboard size={20} />} label="Total Perjalanan" value={totalPerjalanan} color="text-ta-red" />
           <StatCard icon={<DollarSign size={20} />} label="Total Biaya BBM" value={`Rp${totalBiaya.toLocaleString("id-ID")}`} color="text-emerald-600" subtitle={`${data.reduce((s, d) => s + (d.bbm?.vol_liter || 0), 0).toFixed(1)} L`} />
           <StatCard icon={<AlertTriangle size={20} />} label="Perlu Verifikasi" value={perluVerifikasi} color="text-amber-600" />
@@ -186,23 +190,24 @@ export default function PerjalananIndex() {
 
         {loading && <LoadingSkeleton rows={3} />}
 
-        {/* Filter toolbar - always visible */}
-        <div className="hidden lg:flex items-center gap-2.5 flex-wrap bg-white rounded-2xl shadow-sm border border-ta-border px-4 sm:px-6 py-3 mb-4">
-          <select value={filterBulan} onChange={(e) => setFilterBulan(Number(e.target.value))} className="text-xs font-body border border-ta-border rounded-lg px-3 py-2 outline-none bg-white text-ta-ink">
+        {/* Filter toolbar - desktop */}
+        <div className="hidden lg:flex items-center gap-2.5 flex-wrap bg-white rounded-2xl shadow-sm border border-ta-border px-4 sm:px-5 py-2.5 mb-5">
+          <select value={filterBulan} onChange={(e) => setFilterBulan(Number(e.target.value))} className="text-xs font-semibold font-body border border-ta-border rounded-lg px-3 py-2 outline-none bg-white text-ta-ink">
             {MONTHS.map((m) => (
               <option key={m.value} value={m.value}>
                 {m.label}
               </option>
             ))}
           </select>
-          <select value={filterTahun} onChange={(e) => setFilterTahun(Number(e.target.value))} className="text-xs font-body border border-ta-border rounded-lg px-3 py-2 outline-none bg-white text-ta-ink">
+          <select value={filterTahun} onChange={(e) => setFilterTahun(Number(e.target.value))} className="text-xs font-semibold font-body border border-ta-border rounded-lg px-3 py-2 outline-none bg-white text-ta-ink">
             {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 5 + i).map((y) => (
               <option key={y} value={y}>
                 {y}
               </option>
             ))}
           </select>
-          <div className="relative flex-1 min-w-[200px] max-w-[320px]">
+          <div className="w-px h-6 bg-ta-border mx-0.5" />
+          <div className="relative flex-1 min-w-[200px] max-w-[340px]">
             <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ta-muted pointer-events-none" />
             <input
               type="text"
@@ -221,10 +226,10 @@ export default function PerjalananIndex() {
               Reset
             </button>
           )}
-          {meta && <span className="text-xs text-ta-muted font-body ml-auto">{data.length > 0 ? `Menampilkan ${data.length} dari ${meta.total} data` : `${meta.total} data ditemukan`}</span>}
+          {meta && <span className="text-xs text-ta-muted font-body ml-auto shrink-0">{data.length > 0 ? `Menampilkan ${data.length} dari ${meta.total} data` : `${meta.total} data ditemukan`}</span>}
         </div>
 
-        {/* Mobile filter */}
+        {/* Filter toolbar - mobile */}
         <div className="lg:hidden bg-white rounded-2xl shadow-sm border border-ta-border p-3 mb-3 space-y-2">
           <div className="flex items-center gap-2">
             <select value={filterBulan} onChange={(e) => setFilterBulan(Number(e.target.value))} className="text-xs font-body border border-ta-border rounded-lg px-2.5 py-1.5 outline-none bg-white text-ta-ink flex-1">
@@ -274,39 +279,40 @@ export default function PerjalananIndex() {
         {/* Content */}
         {!loading && data.length > 0 && (
           <>
-            {/* Rekap Per Pegawai */}
+            {/* Rekap Per Pegawai - compact */}
             {pegawaiList.length > 0 && (
-              <div className="bg-white rounded-2xl shadow-sm border border-ta-border overflow-hidden mb-6">
-                <div className="px-4 sm:px-6 py-4 border-b border-ta-border bg-gray-50/50">
-                  <h3 className="font-display font-bold text-ta-ink text-base m-0">Rekap Per Pegawai</h3>
+              <div className="bg-white rounded-2xl shadow-sm border border-ta-border overflow-hidden mb-5">
+                <div className="px-4 sm:px-5 py-3 border-b border-ta-border bg-gray-50/50 flex items-center justify-between">
+                  <h3 className="font-display font-bold text-ta-ink text-sm m-0">Rekap Per Pegawai</h3>
+                  <span className="text-[11px] text-ta-muted font-body">{pegawaiList.length} pegawai</span>
                 </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="bg-gray-50 border-b border-ta-border">
-                        <th className="text-left font-semibold font-body text-ta-muted px-3 py-3">#</th>
-                        <th className="text-left font-semibold font-body text-ta-muted px-3 py-3">Nama</th>
-                        <th className="text-center font-semibold font-body text-ta-muted px-3 py-3">Total Trip</th>
-                        <th className="text-center font-semibold font-body text-ta-muted px-3 py-3">Anomali</th>
-                        <th className="text-right font-semibold font-body text-ta-muted px-3 py-3">Total Jarak</th>
-                        <th className="text-right font-semibold font-body text-ta-muted px-3 py-3">Total Biaya BBM</th>
-                        <th className="text-right font-semibold font-body text-ta-muted px-3 py-3">Rata Efisiensi</th>
-                        <th className="text-center font-semibold font-body text-ta-muted px-3 py-3">Status</th>
+                <div className="overflow-x-auto max-h-64 overflow-y-auto">
+                  <table className="w-full text-xs">
+                    <thead className="sticky top-0 bg-gray-50 z-10">
+                      <tr className="border-b border-ta-border">
+                        <th className="text-left font-semibold font-body text-ta-muted px-3 py-2.5">#</th>
+                        <th className="text-left font-semibold font-body text-ta-muted px-3 py-2.5">Nama</th>
+                        <th className="text-center font-semibold font-body text-ta-muted px-3 py-2.5">Trip</th>
+                        <th className="text-center font-semibold font-body text-ta-muted px-3 py-2.5">Anomali</th>
+                        <th className="text-right font-semibold font-body text-ta-muted px-3 py-2.5">Jarak</th>
+                        <th className="text-right font-semibold font-body text-ta-muted px-3 py-2.5">Biaya BBM</th>
+                        <th className="text-right font-semibold font-body text-ta-muted px-3 py-2.5">Rata Efisiensi</th>
+                        <th className="text-center font-semibold font-body text-ta-muted px-3 py-2.5">Status</th>
                       </tr>
                     </thead>
                     <tbody>
                       {pegawaiList.map((p, idx) => (
-                        <tr key={p.id} className="border-b border-ta-border hover:bg-gray-50/50">
-                          <td className="px-3 py-3 text-ta-muted font-body">{idx + 1}</td>
-                          <td className="px-3 py-3 font-semibold font-body text-ta-ink">{p.nama}</td>
-                          <td className="px-3 py-3 text-center font-body text-ta-muted">{p.trips}</td>
-                          <td className="px-3 py-3 text-center font-body">
-                            <span className={`text-xs font-semibold ${p.anomalies > 0 ? "text-ta-red" : "text-emerald-600"}`}>{p.anomalies}</span>
+                        <tr key={p.id} className="border-b border-ta-border last:border-0 hover:bg-gray-50/50">
+                          <td className="px-3 py-2 text-ta-muted font-body">{idx + 1}</td>
+                          <td className="px-3 py-2 font-semibold font-body text-ta-ink">{p.nama}</td>
+                          <td className="px-3 py-2 text-center font-body text-ta-muted tabular-nums">{p.trips}</td>
+                          <td className="px-3 py-2 text-center font-body">
+                            <span className={`font-semibold tabular-nums ${p.anomalies > 0 ? "text-ta-red" : "text-emerald-600"}`}>{p.anomalies}</span>
                           </td>
-                          <td className="px-3 py-3 text-right font-body text-ta-muted">{p.totalJarak.toFixed(1)} km</td>
-                          <td className="px-3 py-3 text-right font-body text-ta-muted">Rp{p.totalBiaya.toLocaleString("id-ID")}</td>
-                          <td className="px-3 py-3 text-right font-body text-ta-muted">{p.rataEfisiensi.toFixed(2)} km/L</td>
-                          <td className="px-3 py-3 text-center">
+                          <td className="px-3 py-2 text-right font-body text-ta-muted tabular-nums">{p.totalJarak.toFixed(1)} km</td>
+                          <td className="px-3 py-2 text-right font-body text-ta-muted tabular-nums">Rp{p.totalBiaya.toLocaleString("id-ID")}</td>
+                          <td className="px-3 py-2 text-right font-body text-ta-muted tabular-nums">{p.rataEfisiensi.toFixed(2)} km/L</td>
+                          <td className="px-3 py-2 text-center">
                             <Badge status={p.anomalies > 0 ? "Anomali" : p.rataEfisiensi < 8 ? "Boros" : "Balance"} />
                           </td>
                         </tr>
@@ -319,8 +325,8 @@ export default function PerjalananIndex() {
 
             {/* Detail Table - Desktop */}
             <div className="hidden lg:block bg-white rounded-2xl shadow-sm border border-ta-border overflow-hidden mb-6">
-              <div className="px-4 sm:px-6 py-4 border-b border-ta-border bg-gray-50/50">
-                <h3 className="font-display font-bold text-ta-ink text-base m-0">Detail Perjalanan</h3>
+              <div className="px-4 sm:px-5 py-3 border-b border-ta-border bg-gray-50/50">
+                <h3 className="font-display font-bold text-ta-ink text-sm m-0">Detail Perjalanan</h3>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
@@ -356,11 +362,12 @@ export default function PerjalananIndex() {
                       <th className="text-center font-bold font-body text-ta-muted px-2 py-2.5" rowSpan="2">
                         Efisiensi
                       </th>
-                      <th className="text-center font-bold font-body text-ta-muted px-2 py-2.5" rowSpan="2">
-                        Status
+                      {/* Kolom "Status Validasi" WAJIB memakai status_validasi, bukan status_efisiensi */}
+                      <th className="text-center font-bold font-body text-ta-muted px-2 py-2.5 border-l border-ta-border" rowSpan="2">
+                        Status Validasi
                       </th>
                       <th className="text-center font-bold font-body text-ta-muted px-2 py-2.5" rowSpan="2">
-                        Validasi
+                        Detail
                       </th>
                       <th className="text-center font-bold font-body text-ta-muted px-2 py-2.5" rowSpan="2">
                         Aksi
@@ -400,8 +407,8 @@ export default function PerjalananIndex() {
                             </span>
                           </td>
                           <td className="px-2 py-3 text-right font-body tabular-nums text-ta-muted">{d.monitoring?.efisiensi?.toFixed(2)}</td>
-                          <td className="px-2 py-3 text-center">
-                            <Badge status={d.monitoring?.status_efisiensi} />
+                          <td className="px-2 py-3 text-center border-l border-ta-border">
+                            <Badge status={d.status_validasi || "Normal"} />
                           </td>
                           <td className="px-2 py-3 text-center">
                             <button onClick={() => setDetailTarget(d)} className="text-xs text-ta-red font-semibold font-body bg-ta-soft px-2.5 py-1 rounded-full border-none cursor-pointer hover:bg-red-200 transition-colors">
@@ -439,18 +446,17 @@ export default function PerjalananIndex() {
                           {d.tanggal} &middot; {d.kendaraan?.plat_nomor || "-"}
                         </p>
                       </div>
-                      <Badge status={d.monitoring?.status_efisiensi} />
+                      {/* Badge pada card mobile WAJIB status_validasi, bukan status_efisiensi */}
+                      <Badge status={d.status_validasi || "Normal"} />
                     </div>
-                    <div className="text-xs text-ta-muted font-body mb-2">
-                      <span>Tujuan: {d.tujuan}</span>
-                      <br />
-                      <span>
+                    <div className="text-xs text-ta-muted font-body mb-2 space-y-0.5">
+                      <p className="m-0">Tujuan: {d.tujuan}</p>
+                      <p className="m-0">
                         KM: {d.odometer?.km_lama?.toFixed(0)} &rarr; {d.odometer?.km_baru?.toFixed(0)} ({d.odometer?.jarak_km?.toFixed(1)} km)
-                      </span>
-                      <br />
-                      <span>
-                        BBM: Rp{d.bbm?.jumlah_biaya?.toLocaleString("id-ID")} ({d.bbm?.vol_liter?.toFixed(1)} L)
-                      </span>
+                      </p>
+                      <p className="m-0">
+                        BBM: Rp{d.bbm?.jumlah_biaya?.toLocaleString("id-ID")} ({d.bbm?.vol_liter?.toFixed(1)} L) &middot; {d.monitoring?.efisiensi?.toFixed(2)} km/L
+                      </p>
                     </div>
                     <div className="flex items-center justify-between pt-2 border-t border-ta-border">
                       <button onClick={() => setDetailTarget(d)} className="text-xs text-ta-red font-semibold font-body bg-ta-soft px-3 py-1.5 rounded-full border-none cursor-pointer hover:bg-red-200 transition-colors">
@@ -511,52 +517,64 @@ function DetailModal({ data, onClose }) {
 
   const flags = data.monitoring?.fraud_flags || {};
   const displayFlags = flags.display_flags || [];
+  const statusValidasi = data.status_validasi || "Normal";
+
+  const statusStyle = statusValidasi === "Anomali" ? "bg-red-50 text-red-700 border-red-200" : statusValidasi === "Perlu Verifikasi" ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-emerald-50 text-emerald-700 border-emerald-200";
 
   return (
     <div className="modal-wrap" onClick={onClose}>
       <div className="bg-white rounded-2xl p-6 w-[90%] max-w-2xl max-h-[85vh] overflow-y-auto shadow-xl animate-fade-up" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-5">
           <h3 className="font-display font-bold text-ta-ink text-lg m-0">Detail Validasi</h3>
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-ta-muted hover:bg-gray-200 transition-colors border-none cursor-pointer">
             <X size={16} />
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <InfoItem label="Tanggal" value={data.tanggal || "-"} />
-          <InfoItem label="Pegawai" value={data.pegawai?.nama || "-"} />
-          <InfoItem label="No Polisi" value={data.kendaraan?.plat_nomor || "-"} />
-          <InfoItem label="Tujuan" value={data.tujuan || "-"} />
-          <div className="col-span-2">
-            <InfoItem label="Uraian" value={data.uraian || "-"} />
+        {/* Status Validasi - bagian paling menonjol */}
+        <div className={`rounded-xl border px-4 py-3 mb-5 ${statusStyle}`}>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <p className="text-[11px] uppercase tracking-wider font-semibold font-body opacity-80 m-0 mb-0.5">Status Validasi</p>
+              <p className="text-base font-display font-bold m-0">{statusValidasi}</p>
+            </div>
+            {data.timeline_status && <span className="text-[11px] font-semibold font-body bg-white/60 rounded-full px-2.5 py-1">{data.timeline_status}</span>}
           </div>
-          <InfoItem label="KM Lama" value={data.odometer?.km_lama?.toFixed(0) || "-"} />
-          <InfoItem label="KM Baru" value={data.odometer?.km_baru?.toFixed(0) || "-"} />
-          <InfoItem label="Jarak" value={`${(data.odometer?.jarak_km || 0).toFixed(1)} km`} />
-          <InfoItem label="Volume" value={`${(data.bbm?.vol_liter || 0).toFixed(2)} L`} />
-          <InfoItem label="Efisiensi" value={`${(data.monitoring?.efisiensi || 0).toFixed(2)} km/L`} />
-          <InfoItem label="Nilai Sewajarnya" value={`${(data.nilai_sewajarnya || 0).toFixed(2)} km/L`} />
-          <InfoItem label="Deviasi" value={`${(data.deviasi_km || 0).toFixed(2)} km/L`} />
-          <InfoItem label="Timeline" value={data.timeline_status || "-"} />
+          <p className="text-xs font-body m-0 mt-2 opacity-90">{data.keterangan_validasi || "Tidak ada alasan."}</p>
         </div>
 
-        <div className="mt-4 pt-4 border-t border-ta-border">
-          <div className="flex items-center gap-3 mb-3">
-            <p className="text-sm font-semibold font-body text-ta-ink m-0">Status Validasi:</p>
-            <span
-              className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold font-body ${
-                data.status_validasi === "Anomali" ? "bg-red-50 text-red-700" : data.status_validasi === "Perlu Verifikasi" ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"
-              }`}
-            >
-              {data.status_validasi || "Normal"}
-            </span>
+        {/* Informasi Perjalanan */}
+        <div className="mb-5">
+          <p className="text-xs font-bold font-body text-ta-muted uppercase tracking-wider m-0 mb-3">Informasi Perjalanan</p>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <InfoItem label="Tanggal" value={data.tanggal || "-"} />
+            <InfoItem label="Pegawai" value={data.pegawai?.nama || "-"} />
+            <InfoItem label="No Polisi" value={data.kendaraan?.plat_nomor || "-"} />
+            <InfoItem label="Kendaraan" value={data.kendaraan?.jenis || "-"} />
+            <InfoItem label="Tujuan" value={data.tujuan || "-"} />
+            <div className="col-span-2">
+              <InfoItem label="Uraian" value={data.uraian || "-"} />
+            </div>
           </div>
-          <p className="text-xs text-ta-muted font-body m-0 mb-2">{data.keterangan_validasi || "Tidak ada alasan."}</p>
+        </div>
+
+        {/* Metrik BBM & Odometer */}
+        <div className="mb-5 pt-4 border-t border-ta-border">
+          <p className="text-xs font-bold font-body text-ta-muted uppercase tracking-wider m-0 mb-3">Metrik BBM &amp; Odometer</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
+            <InfoItem label="KM Lama" value={data.odometer?.km_lama?.toFixed(0) || "-"} />
+            <InfoItem label="KM Baru" value={data.odometer?.km_baru?.toFixed(0) || "-"} />
+            <InfoItem label="Jarak" value={`${(data.odometer?.jarak_km || 0).toFixed(1)} km`} />
+            <InfoItem label="Volume" value={`${(data.bbm?.vol_liter || 0).toFixed(2)} L`} />
+            <InfoItem label="Efisiensi" value={`${(data.monitoring?.efisiensi || 0).toFixed(2)} km/L`} />
+            <InfoItem label="Nilai Sewajarnya" value={`${(data.nilai_sewajarnya || 0).toFixed(2)} km/L`} />
+            <InfoItem label="Deviasi" value={`${(data.deviasi_km || 0).toFixed(2)} km/L`} />
+          </div>
         </div>
 
         {displayFlags.length > 0 && (
-          <div className="mt-4 pt-4 border-t border-ta-border">
-            <p className="text-sm font-semibold font-body text-ta-ink m-0 mb-2">Indikasi:</p>
+          <div className="mb-5 pt-4 border-t border-ta-border">
+            <p className="text-xs font-bold font-body text-ta-muted uppercase tracking-wider m-0 mb-2">Indikasi</p>
             <div className="flex flex-wrap gap-2">
               {displayFlags.map((f, i) => (
                 <span key={i} className={`px-2.5 py-1 rounded-full text-[10px] font-semibold font-body ${f.type === "danger" ? "bg-red-50 text-red-700" : f.type === "warning" ? "bg-amber-50 text-amber-700" : "bg-blue-50 text-blue-700"}`}>
@@ -568,8 +586,9 @@ function DetailModal({ data, onClose }) {
         )}
 
         {data.alasan_timeline && (
-          <div className="mt-4 pt-4 border-t border-ta-border">
-            <p className="text-sm font-semibold font-body text-ta-muted m-0">Alasan Timeline: {data.alasan_timeline}</p>
+          <div className="pt-4 border-t border-ta-border">
+            <p className="text-xs font-bold font-body text-ta-muted uppercase tracking-wider m-0 mb-1">Alasan Timeline</p>
+            <p className="text-sm font-body text-ta-ink m-0">{data.alasan_timeline}</p>
           </div>
         )}
 

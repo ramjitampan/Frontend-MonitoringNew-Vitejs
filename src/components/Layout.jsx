@@ -38,36 +38,42 @@ export default function Layout() {
               <NavLink to="/" end className={linkClass}>
                 Beranda
               </NavLink>
-              <NavLink to="/pegawai" className={linkClass}>
-                Data Pegawai
-              </NavLink>
-              <NavLink to="/kendaraan" className={linkClass}>
-                Data Kendaraan
-              </NavLink>
-              <NavLink to="/perjalanan" className={linkClass}>
-                Data Perjalanan
-              </NavLink>
+              {isAuthenticated && (
+                <>
+                  <NavLink to="/pegawai" className={linkClass}>
+                    Data Pegawai
+                  </NavLink>
+                  <NavLink to="/kendaraan" className={linkClass}>
+                    Data Kendaraan
+                  </NavLink>
+                  <NavLink to="/perjalanan" className={linkClass}>
+                    Data Perjalanan
+                  </NavLink>
+                </>
+              )}
             </div>
 
             <div className="flex items-center gap-3">
-              <Link to="/perjalanan" className="hidden sm:inline-flex items-center gap-2 px-5 py-2 rounded-full text-white text-sm font-semibold font-body no-underline hero-bg hover:shadow-lg transition-shadow">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="3" width="18" height="18" rx="2" />
-                  <line x1="3" y1="9" x2="21" y2="9" />
-                  <line x1="9" y1="21" x2="9" y2="9" />
-                </svg>
-                Dashboard
-              </Link>
-
               {isAuthenticated ? (
-                <button onClick={logout} className="flex items-center gap-2 px-4 py-2 rounded-full border border-ta-red text-ta-red text-sm font-semibold font-body bg-transparent hover:bg-ta-soft transition-colors cursor-pointer">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                    <polyline points="16 17 21 12 16 7" />
-                    <line x1="21" y1="12" x2="9" y2="12" />
-                  </svg>
-                  Keluar
-                </button>
+                <>
+                  <Link to="/perjalanan" className="hidden sm:inline-flex items-center gap-2 px-5 py-2 rounded-full text-white text-sm font-semibold font-body no-underline hero-bg hover:shadow-lg transition-shadow">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="3" width="18" height="18" rx="2" />
+                      <line x1="3" y1="9" x2="21" y2="9" />
+                      <line x1="9" y1="21" x2="9" y2="9" />
+                    </svg>
+                    Dashboard
+                  </Link>
+
+                  <button onClick={logout} className="flex items-center gap-2 px-4 py-2 rounded-full border border-ta-red text-ta-red text-sm font-semibold font-body bg-transparent hover:bg-ta-soft transition-colors cursor-pointer">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                      <polyline points="16 17 21 12 16 7" />
+                      <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>
+                    Keluar
+                  </button>
+                </>
               ) : (
                 <Link to="/login" className="flex items-center gap-2 px-4 py-2 rounded-full bg-ta-red text-white text-sm font-semibold font-body no-underline hover:bg-ta-dark transition-colors">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -94,18 +100,22 @@ export default function Layout() {
               <NavLink to="/" end className={linkClass} onClick={() => setMenuOpen(false)}>
                 Beranda
               </NavLink>
-              <NavLink to="/pegawai" className={linkClass} onClick={() => setMenuOpen(false)}>
-                Data Pegawai
-              </NavLink>
-              <NavLink to="/kendaraan" className={linkClass} onClick={() => setMenuOpen(false)}>
-                Data Kendaraan
-              </NavLink>
-              <NavLink to="/perjalanan" className={linkClass} onClick={() => setMenuOpen(false)}>
-                Data Perjalanan
-              </NavLink>
-              <Link to="/perjalanan" className="mt-2 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-white text-sm font-semibold font-body no-underline hero-bg" onClick={() => setMenuOpen(false)}>
-                Dashboard
-              </Link>
+              {isAuthenticated && (
+                <>
+                  <NavLink to="/pegawai" className={linkClass} onClick={() => setMenuOpen(false)}>
+                    Data Pegawai
+                  </NavLink>
+                  <NavLink to="/kendaraan" className={linkClass} onClick={() => setMenuOpen(false)}>
+                    Data Kendaraan
+                  </NavLink>
+                  <NavLink to="/perjalanan" className={linkClass} onClick={() => setMenuOpen(false)}>
+                    Data Perjalanan
+                  </NavLink>
+                  <Link to="/perjalanan" className="mt-2 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-white text-sm font-semibold font-body no-underline hero-bg" onClick={() => setMenuOpen(false)}>
+                    Dashboard
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         )}

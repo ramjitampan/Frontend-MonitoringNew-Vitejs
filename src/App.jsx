@@ -17,8 +17,12 @@ function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
+          {/* ── RUTE PUBLIK: hanya beranda ── */}
           <Route element={<Layout />}>
             <Route path="/" element={<Dashboard />} />
+          </Route>
+          {/* ── RUTE TERPROTEKSI: wajib login ── */}
+          <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
             <Route path="/pegawai" element={<PegawaiIndex />} />
             <Route path="/pegawai/create" element={<PegawaiForm />} />
             <Route path="/pegawai/edit/:id" element={<PegawaiForm />} />
