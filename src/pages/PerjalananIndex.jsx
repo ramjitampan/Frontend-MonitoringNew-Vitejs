@@ -70,9 +70,7 @@ export default function PerjalananIndex() {
   };
 
   const hasActiveFilter = () => {
-    return filterBulan !== new Date().getMonth() + 1 ||
-      filterTahun !== new Date().getFullYear() ||
-      searchQuery !== "";
+    return filterBulan !== new Date().getMonth() + 1 || filterTahun !== new Date().getFullYear() || searchQuery !== "";
   };
 
   const handleDelete = async () => {
@@ -86,9 +84,34 @@ export default function PerjalananIndex() {
     }
   };
 
-  const handleExport = () => {
-    const base = api.defaults.baseURL || "http://localhost:5000/api";
-    window.open(`${base}/perjalanan/export/excel?bulan=${exportBulan}&tahun=${exportTahun}`, "_blank");
+  const handleExport = async () => {
+    try {
+      const response = await api.get("/perjalanan/export/excel", {
+        params: {
+          bulan: exportBulan,
+          tahun: exportTahun,
+        },
+        responseType: "blob",
+      });
+
+      const blob = new Blob([response.data], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+
+      const url = window.URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `Data-Perjalanan-${exportBulan}-${exportTahun}.xlsx`;
+
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Export Excel gagal:", error);
+    }
   };
 
   // Stats from page data
@@ -126,39 +149,28 @@ export default function PerjalananIndex() {
 
   return (
     <div>
-      <PageHeader
-        eyebrow="Monitoring BBM"
-        title="Data Perjalanan BBM"
-        description="Pantau dan kelola seluruh perjalanan serta konsumsi BBM kendaraan operasional"
-      >
+      <PageHeader eyebrow="Monitoring BBM" title="Data Perjalanan BBM" description="Pantau dan kelola seluruh perjalanan serta konsumsi BBM kendaraan operasional">
         <div className="flex items-center gap-2 bg-white/15 rounded-xl px-3 py-2">
           <Download size={16} className="text-white" />
-          <select
-            value={exportBulan}
-            onChange={(e) => setExportBulan(Number(e.target.value))}
-            className="bg-transparent text-white text-xs font-body border border-white/20 rounded-lg px-2 py-1.5 outline-none"
-          >
+          <select value={exportBulan} onChange={(e) => setExportBulan(Number(e.target.value))} className="bg-transparent text-white text-xs font-body border border-white/20 rounded-lg px-2 py-1.5 outline-none">
             {MONTHS.map((m) => (
-              <option key={m.value} value={m.value} className="text-ta-ink">{m.label}</option>
+              <option key={m.value} value={m.value} className="text-ta-ink">
+                {m.label}
+              </option>
             ))}
           </select>
-          <select
-            value={exportTahun}
-            onChange={(e) => setExportTahun(Number(e.target.value))}
-            className="bg-transparent text-white text-xs font-body border border-white/20 rounded-lg px-2 py-1.5 outline-none"
-          >
+          <select value={exportTahun} onChange={(e) => setExportTahun(Number(e.target.value))} className="bg-transparent text-white text-xs font-body border border-white/20 rounded-lg px-2 py-1.5 outline-none">
             {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 5 + i).map((y) => (
-              <option key={y} value={y} className="text-ta-ink">{y}</option>
+              <option key={y} value={y} className="text-ta-ink">
+                {y}
+              </option>
             ))}
           </select>
           <button onClick={handleExport} className="bg-white text-ta-red text-xs font-bold px-3 py-1.5 rounded-lg border-none cursor-pointer hover:bg-white/90 transition-colors">
             Export
           </button>
         </div>
-        <Link
-          to="/perjalanan/create"
-          className="btn-hero-primary inline-flex items-center gap-2 no-underline shrink-0"
-        >
+        <Link to="/perjalanan/create" className="btn-hero-primary inline-flex items-center gap-2 no-underline shrink-0">
           <Plus size={18} strokeWidth={2.5} />
           Tambah
         </Link>
@@ -176,95 +188,76 @@ export default function PerjalananIndex() {
 
         {/* Filter toolbar - always visible */}
         <div className="hidden lg:flex items-center gap-2.5 flex-wrap bg-white rounded-2xl shadow-sm border border-ta-border px-4 sm:px-6 py-3 mb-4">
-              <select
-                value={filterBulan}
-                onChange={(e) => setFilterBulan(Number(e.target.value))}
-                className="text-xs font-body border border-ta-border rounded-lg px-3 py-2 outline-none bg-white text-ta-ink"
-              >
-                {MONTHS.map((m) => (
-                  <option key={m.value} value={m.value}>{m.label}</option>
-                ))}
-              </select>
-              <select
-                value={filterTahun}
-                onChange={(e) => setFilterTahun(Number(e.target.value))}
-                className="text-xs font-body border border-ta-border rounded-lg px-3 py-2 outline-none bg-white text-ta-ink"
-              >
-                {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 5 + i).map((y) => (
-                  <option key={y} value={y}>{y}</option>
-                ))}
-              </select>
-              <div className="relative flex-1 min-w-[200px] max-w-[320px]">
-                <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ta-muted pointer-events-none" />
-                <input
-                  type="text"
-                  placeholder="Cari pegawai, tujuan, kendaraan, no pol, no bon..."
-                  value={searchInput}
-                  onChange={(e) => handleSearchChange(e.target.value)}
-                  className="w-full text-xs font-body border border-ta-border rounded-lg pl-8 pr-3 py-2 outline-none bg-white text-ta-ink placeholder:text-ta-muted/60"
-                />
-              </div>
-              {hasActiveFilter() && (
-                <button
-                  onClick={handleResetFilter}
-                  className="flex items-center gap-1.5 text-xs font-semibold font-body text-ta-muted bg-white border border-ta-border rounded-lg px-3 py-2 cursor-pointer hover:bg-gray-50 transition-colors shrink-0"
-                >
-                  <RotateCcw size={13} />
-                  Reset
-                </button>
-              )}
-              {meta && (
-                <span className="text-xs text-ta-muted font-body ml-auto">
-                  {data.length > 0 ? `Menampilkan ${data.length} dari ${meta.total} data` : `${meta.total} data ditemukan`}
-                </span>
-              )}
-            </div>
+          <select value={filterBulan} onChange={(e) => setFilterBulan(Number(e.target.value))} className="text-xs font-body border border-ta-border rounded-lg px-3 py-2 outline-none bg-white text-ta-ink">
+            {MONTHS.map((m) => (
+              <option key={m.value} value={m.value}>
+                {m.label}
+              </option>
+            ))}
+          </select>
+          <select value={filterTahun} onChange={(e) => setFilterTahun(Number(e.target.value))} className="text-xs font-body border border-ta-border rounded-lg px-3 py-2 outline-none bg-white text-ta-ink">
+            {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 5 + i).map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
+          </select>
+          <div className="relative flex-1 min-w-[200px] max-w-[320px]">
+            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ta-muted pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Cari pegawai, tujuan, kendaraan, no pol, no bon..."
+              value={searchInput}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="w-full text-xs font-body border border-ta-border rounded-lg pl-8 pr-3 py-2 outline-none bg-white text-ta-ink placeholder:text-ta-muted/60"
+            />
+          </div>
+          {hasActiveFilter() && (
+            <button
+              onClick={handleResetFilter}
+              className="flex items-center gap-1.5 text-xs font-semibold font-body text-ta-muted bg-white border border-ta-border rounded-lg px-3 py-2 cursor-pointer hover:bg-gray-50 transition-colors shrink-0"
+            >
+              <RotateCcw size={13} />
+              Reset
+            </button>
+          )}
+          {meta && <span className="text-xs text-ta-muted font-body ml-auto">{data.length > 0 ? `Menampilkan ${data.length} dari ${meta.total} data` : `${meta.total} data ditemukan`}</span>}
+        </div>
 
         {/* Mobile filter */}
         <div className="lg:hidden bg-white rounded-2xl shadow-sm border border-ta-border p-3 mb-3 space-y-2">
-              <div className="flex items-center gap-2">
-                <select
-                  value={filterBulan}
-                  onChange={(e) => setFilterBulan(Number(e.target.value))}
-                  className="text-xs font-body border border-ta-border rounded-lg px-2.5 py-1.5 outline-none bg-white text-ta-ink flex-1"
-                >
-                  {MONTHS.map((m) => (
-                    <option key={m.value} value={m.value}>{m.label.substring(0, 3)}</option>
-                  ))}
-                </select>
-                <select
-                  value={filterTahun}
-                  onChange={(e) => setFilterTahun(Number(e.target.value))}
-                  className="text-xs font-body border border-ta-border rounded-lg px-2.5 py-1.5 outline-none bg-white text-ta-ink flex-1"
-                >
-                  {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 5 + i).map((y) => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
-                </select>
-                {hasActiveFilter() && (
-                  <button
-                    onClick={handleResetFilter}
-                    className="flex items-center justify-center text-ta-muted bg-white border border-ta-border rounded-lg px-2.5 py-1.5 cursor-pointer hover:bg-gray-50 transition-colors"
-                  >
-                    <RotateCcw size={13} />
-                  </button>
-                )}
-              </div>
-              <div className="relative">
-                <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ta-muted pointer-events-none" />
-                <input
-                  type="text"
-                  placeholder="Cari pegawai, tujuan, kendaraan, no pol, no bon..."
-                  value={searchInput}
-                  onChange={(e) => handleSearchChange(e.target.value)}
-                  className="w-full text-xs font-body border border-ta-border rounded-lg pl-8 pr-3 py-1.5 outline-none bg-white text-ta-ink placeholder:text-ta-muted/60"
-                />
-              </div>
-              {meta && (
-                <p className="text-[11px] text-ta-muted font-body m-0 text-right">
-                  {data.length > 0 ? `${data.length}/${meta.total}` : `${meta.total} data`}
-                </p>
-              )}
+          <div className="flex items-center gap-2">
+            <select value={filterBulan} onChange={(e) => setFilterBulan(Number(e.target.value))} className="text-xs font-body border border-ta-border rounded-lg px-2.5 py-1.5 outline-none bg-white text-ta-ink flex-1">
+              {MONTHS.map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.label.substring(0, 3)}
+                </option>
+              ))}
+            </select>
+            <select value={filterTahun} onChange={(e) => setFilterTahun(Number(e.target.value))} className="text-xs font-body border border-ta-border rounded-lg px-2.5 py-1.5 outline-none bg-white text-ta-ink flex-1">
+              {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 5 + i).map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))}
+            </select>
+            {hasActiveFilter() && (
+              <button onClick={handleResetFilter} className="flex items-center justify-center text-ta-muted bg-white border border-ta-border rounded-lg px-2.5 py-1.5 cursor-pointer hover:bg-gray-50 transition-colors">
+                <RotateCcw size={13} />
+              </button>
+            )}
+          </div>
+          <div className="relative">
+            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ta-muted pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Cari pegawai, tujuan, kendaraan, no pol, no bon..."
+              value={searchInput}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="w-full text-xs font-body border border-ta-border rounded-lg pl-8 pr-3 py-1.5 outline-none bg-white text-ta-ink placeholder:text-ta-muted/60"
+            />
+          </div>
+          {meta && <p className="text-[11px] text-ta-muted font-body m-0 text-right">{data.length > 0 ? `${data.length}/${meta.total}` : `${meta.total} data`}</p>}
         </div>
 
         {!loading && data.length === 0 && (
@@ -308,9 +301,7 @@ export default function PerjalananIndex() {
                           <td className="px-3 py-3 font-semibold font-body text-ta-ink">{p.nama}</td>
                           <td className="px-3 py-3 text-center font-body text-ta-muted">{p.trips}</td>
                           <td className="px-3 py-3 text-center font-body">
-                            <span className={`text-xs font-semibold ${p.anomalies > 0 ? "text-ta-red" : "text-emerald-600"}`}>
-                              {p.anomalies}
-                            </span>
+                            <span className={`text-xs font-semibold ${p.anomalies > 0 ? "text-ta-red" : "text-emerald-600"}`}>{p.anomalies}</span>
                           </td>
                           <td className="px-3 py-3 text-right font-body text-ta-muted">{p.totalJarak.toFixed(1)} km</td>
                           <td className="px-3 py-3 text-right font-body text-ta-muted">Rp{p.totalBiaya.toLocaleString("id-ID")}</td>
@@ -335,19 +326,45 @@ export default function PerjalananIndex() {
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="bg-gray-100 border-b border-ta-border">
-                      <th className="text-center font-bold font-body text-ta-muted px-2 py-2.5" rowSpan="2">#</th>
-                      <th className="text-center font-bold font-body text-ta-muted px-2 py-2.5" rowSpan="2">Tanggal</th>
-                      <th className="text-center font-bold font-body text-ta-muted px-2 py-2.5" rowSpan="2">Pegawai</th>
-                      <th className="text-center font-bold font-body text-ta-muted px-2 py-2.5" rowSpan="2">Tujuan</th>
-                      <th className="text-center font-bold font-body text-ta-muted px-2 py-2.5" rowSpan="2">Kendaraan</th>
-                      <th className="text-center font-bold font-body text-ta-muted px-2 py-2.5" rowSpan="2">No Pol</th>
-                      <th className="text-center font-bold font-body text-ta-muted px-2 py-2.5 border-l border-ta-border" colSpan="3">Odometer</th>
-                      <th className="text-center font-bold font-body text-ta-muted px-2 py-2.5 border-l border-ta-border" colSpan="3">Bon BBM</th>
-                      <th className="text-center font-bold font-body text-ta-muted px-2 py-2.5" rowSpan="2">Foto</th>
-                      <th className="text-center font-bold font-body text-ta-muted px-2 py-2.5" rowSpan="2">Efisiensi</th>
-                      <th className="text-center font-bold font-body text-ta-muted px-2 py-2.5" rowSpan="2">Status</th>
-                      <th className="text-center font-bold font-body text-ta-muted px-2 py-2.5" rowSpan="2">Validasi</th>
-                      <th className="text-center font-bold font-body text-ta-muted px-2 py-2.5" rowSpan="2">Aksi</th>
+                      <th className="text-center font-bold font-body text-ta-muted px-2 py-2.5" rowSpan="2">
+                        #
+                      </th>
+                      <th className="text-center font-bold font-body text-ta-muted px-2 py-2.5" rowSpan="2">
+                        Tanggal
+                      </th>
+                      <th className="text-center font-bold font-body text-ta-muted px-2 py-2.5" rowSpan="2">
+                        Pegawai
+                      </th>
+                      <th className="text-center font-bold font-body text-ta-muted px-2 py-2.5" rowSpan="2">
+                        Tujuan
+                      </th>
+                      <th className="text-center font-bold font-body text-ta-muted px-2 py-2.5" rowSpan="2">
+                        Kendaraan
+                      </th>
+                      <th className="text-center font-bold font-body text-ta-muted px-2 py-2.5" rowSpan="2">
+                        No Pol
+                      </th>
+                      <th className="text-center font-bold font-body text-ta-muted px-2 py-2.5 border-l border-ta-border" colSpan="3">
+                        Odometer
+                      </th>
+                      <th className="text-center font-bold font-body text-ta-muted px-2 py-2.5 border-l border-ta-border" colSpan="3">
+                        Bon BBM
+                      </th>
+                      <th className="text-center font-bold font-body text-ta-muted px-2 py-2.5" rowSpan="2">
+                        Foto
+                      </th>
+                      <th className="text-center font-bold font-body text-ta-muted px-2 py-2.5" rowSpan="2">
+                        Efisiensi
+                      </th>
+                      <th className="text-center font-bold font-body text-ta-muted px-2 py-2.5" rowSpan="2">
+                        Status
+                      </th>
+                      <th className="text-center font-bold font-body text-ta-muted px-2 py-2.5" rowSpan="2">
+                        Validasi
+                      </th>
+                      <th className="text-center font-bold font-body text-ta-muted px-2 py-2.5" rowSpan="2">
+                        Aksi
+                      </th>
                     </tr>
                     <tr className="bg-gray-50 border-b border-ta-border">
                       <th className="text-center font-semibold font-body text-ta-muted px-2 py-2 border-l border-ta-border">KM Lama</th>
@@ -360,17 +377,15 @@ export default function PerjalananIndex() {
                   </thead>
                   <tbody>
                     {data.map((d, idx) => {
-                      const rowBg = d.status_validasi === "Anomali"
-                        ? "bg-red-50/80"
-                        : d.status_validasi === "Perlu Verifikasi"
-                        ? "bg-amber-50/80"
-                        : "";
+                      const rowBg = d.status_validasi === "Anomali" ? "bg-red-50/80" : d.status_validasi === "Perlu Verifikasi" ? "bg-amber-50/80" : "";
                       return (
                         <tr key={d.id} className={`border-b border-ta-border hover:bg-gray-50/50 transition-colors ${rowBg}`}>
                           <td className="px-2 py-3 text-center font-body text-ta-muted">{(page - 1) * PER_PAGE + idx + 1}</td>
                           <td className="px-2 py-3 text-center font-body text-ta-muted whitespace-nowrap">{d.tanggal}</td>
                           <td className="px-2 py-3 font-body text-ta-ink">{d.pegawai?.nama || "-"}</td>
-                          <td className="px-2 py-3 font-body text-ta-muted max-w-[100px] truncate" title={d.tujuan}>{d.tujuan}</td>
+                          <td className="px-2 py-3 font-body text-ta-muted max-w-[100px] truncate" title={d.tujuan}>
+                            {d.tujuan}
+                          </td>
                           <td className="px-2 py-3 font-body text-ta-ink">{d.kendaraan?.jenis || "-"}</td>
                           <td className="px-2 py-3 font-semibold font-body text-ta-ink whitespace-nowrap">{d.kendaraan?.plat_nomor || "-"}</td>
                           <td className="px-2 py-3 text-right font-body tabular-nums text-ta-muted border-l border-ta-border">{d.odometer?.km_lama?.toFixed(0)}</td>
@@ -389,27 +404,16 @@ export default function PerjalananIndex() {
                             <Badge status={d.monitoring?.status_efisiensi} />
                           </td>
                           <td className="px-2 py-3 text-center">
-                            <button
-                              onClick={() => setDetailTarget(d)}
-                              className="text-xs text-ta-red font-semibold font-body bg-ta-soft px-2.5 py-1 rounded-full border-none cursor-pointer hover:bg-red-200 transition-colors"
-                            >
+                            <button onClick={() => setDetailTarget(d)} className="text-xs text-ta-red font-semibold font-body bg-ta-soft px-2.5 py-1 rounded-full border-none cursor-pointer hover:bg-red-200 transition-colors">
                               Detail
                             </button>
                           </td>
                           <td className="px-2 py-3">
                             <div className="flex items-center justify-center gap-1">
-                              <Link
-                                to={`/perjalanan/edit/${d.id}`}
-                                className="p-1.5 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors"
-                                title="Edit"
-                              >
+                              <Link to={`/perjalanan/edit/${d.id}`} className="p-1.5 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors" title="Edit">
                                 <Edit3 size={13} />
                               </Link>
-                              <button
-                                onClick={() => setDeleteTarget(d)}
-                                className="p-1.5 rounded-lg bg-red-50 text-ta-red hover:bg-red-100 transition-colors cursor-pointer"
-                                title="Hapus"
-                              >
+                              <button onClick={() => setDeleteTarget(d)} className="p-1.5 rounded-lg bg-red-50 text-ta-red hover:bg-red-100 transition-colors cursor-pointer" title="Hapus">
                                 <Trash2 size={13} />
                               </button>
                             </div>
@@ -425,45 +429,38 @@ export default function PerjalananIndex() {
             {/* Mobile cards */}
             <div className="lg:hidden space-y-3 mb-6">
               {data.map((d) => {
-                const cardBorder = d.status_validasi === "Anomali"
-                  ? "border-l-4 border-l-red-500"
-                  : d.status_validasi === "Perlu Verifikasi"
-                  ? "border-l-4 border-l-amber-500"
-                  : "";
+                const cardBorder = d.status_validasi === "Anomali" ? "border-l-4 border-l-red-500" : d.status_validasi === "Perlu Verifikasi" ? "border-l-4 border-l-amber-500" : "";
                 return (
                   <div key={d.id} className={`bg-white rounded-2xl shadow-sm border border-ta-border p-4 ${cardBorder}`}>
                     <div className="flex items-start justify-between mb-2">
                       <div>
                         <p className="font-display font-bold text-ta-ink text-sm m-0">{d.pegawai?.nama || "-"}</p>
-                        <p className="text-xs text-ta-muted font-body m-0">{d.tanggal} &middot; {d.kendaraan?.plat_nomor || "-"}</p>
+                        <p className="text-xs text-ta-muted font-body m-0">
+                          {d.tanggal} &middot; {d.kendaraan?.plat_nomor || "-"}
+                        </p>
                       </div>
                       <Badge status={d.monitoring?.status_efisiensi} />
                     </div>
                     <div className="text-xs text-ta-muted font-body mb-2">
                       <span>Tujuan: {d.tujuan}</span>
                       <br />
-                      <span>KM: {d.odometer?.km_lama?.toFixed(0)} &rarr; {d.odometer?.km_baru?.toFixed(0)} ({d.odometer?.jarak_km?.toFixed(1)} km)</span>
+                      <span>
+                        KM: {d.odometer?.km_lama?.toFixed(0)} &rarr; {d.odometer?.km_baru?.toFixed(0)} ({d.odometer?.jarak_km?.toFixed(1)} km)
+                      </span>
                       <br />
-                      <span>BBM: Rp{d.bbm?.jumlah_biaya?.toLocaleString("id-ID")} ({d.bbm?.vol_liter?.toFixed(1)} L)</span>
+                      <span>
+                        BBM: Rp{d.bbm?.jumlah_biaya?.toLocaleString("id-ID")} ({d.bbm?.vol_liter?.toFixed(1)} L)
+                      </span>
                     </div>
                     <div className="flex items-center justify-between pt-2 border-t border-ta-border">
-                      <button
-                        onClick={() => setDetailTarget(d)}
-                        className="text-xs text-ta-red font-semibold font-body bg-ta-soft px-3 py-1.5 rounded-full border-none cursor-pointer hover:bg-red-200 transition-colors"
-                      >
+                      <button onClick={() => setDetailTarget(d)} className="text-xs text-ta-red font-semibold font-body bg-ta-soft px-3 py-1.5 rounded-full border-none cursor-pointer hover:bg-red-200 transition-colors">
                         Detail Validasi
                       </button>
                       <div className="flex gap-1.5">
-                        <Link
-                          to={`/perjalanan/edit/${d.id}`}
-                          className="p-1.5 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors"
-                        >
+                        <Link to={`/perjalanan/edit/${d.id}`} className="p-1.5 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors">
                           <Edit3 size={13} />
                         </Link>
-                        <button
-                          onClick={() => setDeleteTarget(d)}
-                          className="p-1.5 rounded-lg bg-red-50 text-ta-red hover:bg-red-100 transition-colors cursor-pointer"
-                        >
+                        <button onClick={() => setDeleteTarget(d)} className="p-1.5 rounded-lg bg-red-50 text-ta-red hover:bg-red-100 transition-colors cursor-pointer">
                           <Trash2 size={13} />
                         </button>
                       </div>
@@ -479,10 +476,7 @@ export default function PerjalananIndex() {
       </div>
 
       {/* FAB for mobile */}
-      <Link
-        to="/perjalanan/create"
-        className="lg:hidden fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full hero-bg text-white flex items-center justify-center shadow-xl hover:shadow-2xl transition-shadow no-underline"
-      >
+      <Link to="/perjalanan/create" className="lg:hidden fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full hero-bg text-white flex items-center justify-center shadow-xl hover:shadow-2xl transition-shadow no-underline">
         <Plus size={24} strokeWidth={2.5} />
       </Link>
 
@@ -490,13 +484,7 @@ export default function PerjalananIndex() {
       <DetailModal data={detailTarget} onClose={() => setDetailTarget(null)} />
 
       {/* Delete Modal */}
-      <DeleteModal
-        show={!!deleteTarget}
-        itemType="Perjalanan"
-        itemName={deleteTarget ? `${deleteTarget.pegawai?.nama || ""} - ${deleteTarget.tanggal || ""}` : ""}
-        onConfirm={handleDelete}
-        onCancel={() => setDeleteTarget(null)}
-      />
+      <DeleteModal show={!!deleteTarget} itemType="Perjalanan" itemName={deleteTarget ? `${deleteTarget.pegawai?.nama || ""} - ${deleteTarget.tanggal || ""}` : ""} onConfirm={handleDelete} onCancel={() => setDeleteTarget(null)} />
     </div>
   );
 }
@@ -514,7 +502,9 @@ function DetailModal({ data, onClose }) {
   useEffect(() => {
     if (data) document.body.style.overflow = "hidden";
     else document.body.style.overflow = "";
-    return () => { document.body.style.overflow = ""; };
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [data]);
 
   if (!data) return null;
@@ -553,13 +543,11 @@ function DetailModal({ data, onClose }) {
         <div className="mt-4 pt-4 border-t border-ta-border">
           <div className="flex items-center gap-3 mb-3">
             <p className="text-sm font-semibold font-body text-ta-ink m-0">Status Validasi:</p>
-            <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold font-body ${
-              data.status_validasi === "Anomali"
-                ? "bg-red-50 text-red-700"
-                : data.status_validasi === "Perlu Verifikasi"
-                ? "bg-amber-50 text-amber-700"
-                : "bg-emerald-50 text-emerald-700"
-            }`}>
+            <span
+              className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold font-body ${
+                data.status_validasi === "Anomali" ? "bg-red-50 text-red-700" : data.status_validasi === "Perlu Verifikasi" ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"
+              }`}
+            >
               {data.status_validasi || "Normal"}
             </span>
           </div>
@@ -571,13 +559,7 @@ function DetailModal({ data, onClose }) {
             <p className="text-sm font-semibold font-body text-ta-ink m-0 mb-2">Indikasi:</p>
             <div className="flex flex-wrap gap-2">
               {displayFlags.map((f, i) => (
-                <span key={i} className={`px-2.5 py-1 rounded-full text-[10px] font-semibold font-body ${
-                  f.type === "danger"
-                    ? "bg-red-50 text-red-700"
-                    : f.type === "warning"
-                    ? "bg-amber-50 text-amber-700"
-                    : "bg-blue-50 text-blue-700"
-                }`}>
+                <span key={i} className={`px-2.5 py-1 rounded-full text-[10px] font-semibold font-body ${f.type === "danger" ? "bg-red-50 text-red-700" : f.type === "warning" ? "bg-amber-50 text-amber-700" : "bg-blue-50 text-blue-700"}`}>
                   {f.text || f}
                 </span>
               ))}
