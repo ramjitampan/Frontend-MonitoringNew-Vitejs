@@ -8,11 +8,28 @@ import { formatRupiahSingkat } from "../utils/format";
 
 function Icon({ name, className = "w-5 h-5" }) {
   const icons = {
-    check: Check, play: Play, chartLine: TrendingUp, users: Users, truck: Truck,
-    route: MapPin, fuel: Fuel, receipt: Receipt, pie: PieChart, fileImport: FileDown,
-    gears: Settings, scan: Search, gauge: Gauge, globe: Globe, server: Server,
-    phone: Smartphone, building: Building2, grad: GraduationCap, laptop: Laptop,
-    arrowRight: ArrowRight, shield: Shield, refresh: RefreshCw,
+    check: Check,
+    play: Play,
+    chartLine: TrendingUp,
+    users: Users,
+    truck: Truck,
+    route: MapPin,
+    fuel: Fuel,
+    receipt: Receipt,
+    pie: PieChart,
+    fileImport: FileDown,
+    gears: Settings,
+    scan: Search,
+    gauge: Gauge,
+    globe: Globe,
+    server: Server,
+    phone: Smartphone,
+    building: Building2,
+    grad: GraduationCap,
+    laptop: Laptop,
+    arrowRight: ArrowRight,
+    shield: Shield,
+    refresh: RefreshCw,
   };
   const Comp = icons[name];
   if (!Comp) return null;
@@ -23,16 +40,16 @@ function Icon({ name, className = "w-5 h-5" }) {
 function AnimatedCounter({ target, isRupiah, variant = "dark" }) {
   const [count, setCount] = useState(0);
   const ref = useRef(null);
-  const animated = useRef(false);
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    let triggered = false; // ← lokal, reset tiap kali target berubah
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting && !animated.current) {
-            animated.current = true;
+          if (entry.isIntersecting && !triggered) {
+            triggered = true;
             const duration = 1400;
             const startTime = performance.now();
             function tick(now) {
