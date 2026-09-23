@@ -90,26 +90,29 @@ export default function Dashboard() {
   });
 
   useEffect(() => {
+    const controller = new AbortController();
     let active = true;
-    const load = () => {
-      api
-        .get("/dashboard")
-        .then((res) => {
-          if (!active) return;
-          const d = res.data?.data ?? {};
-          setStats({
-            totalPegawai: d.totalPegawai ?? 0,
-            totalKendaraan: d.totalKendaraan ?? 0,
-            totalPerjalanan: d.totalPerjalanan ?? 0,
-            totalBBM: d.totalBBM ?? 0,
-          });
-        })
-        .catch(() => {});
+    const load = async () => {
+      try {
+        const res = await api.get("/dashboard", { signal: controller.signal });
+        if (!active) return;
+        const d = res.data?.data ?? {};
+        setStats({
+          totalPegawai: d.totalPegawai ?? 0,
+          totalKendaraan: d.totalKendaraan ?? 0,
+          totalPerjalanan: d.totalPerjalanan ?? 0,
+          totalBBM: d.totalBBM ?? 0,
+        });
+      } catch (err) {
+        if (!active) return;
+        if (err.name === "AbortError") return;
+      }
     };
     load();
     const interval = setInterval(load, 30000);
     return () => {
       active = false;
+      controller.abort();
       clearInterval(interval);
     };
   }, []);
